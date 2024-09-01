@@ -12,10 +12,13 @@ class CuentaBancaria:
         self.__ultimoRetiro = ultimoRetiro
         self.__ultimaConsignacion = ultimaConsignacion
     
-    #Metodo para acceder y modificar los atributos encapsulados 
+    #Metodo para obtener y establecer (getters y setters)
     def get_numeroCta(self):
         return self.__numeroCta
         
     def get_nombreCliente(self):
         return self.__nombreCliente
+    
+    def get_saldoCta(self):
+        return self.__saldoCta 
         
