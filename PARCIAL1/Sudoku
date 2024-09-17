@@ -1,0 +1,218 @@
+import java.util.Random;
+import java.util.Scanner;
+
+public class Sudoku {
+    private int[][] board;
+    private int[][] solution; // Guarda la solución del Sudoku completo.
+
+    public Sudoku() {
+        // Inicializa el tablero de sudoku con ceros (vacío)
+        board = new int[9][9];
+        solution = new int[9][9];
+    }
+
+    // Imprime el tablero en un formato legible
+    public void printBoard() {
+        for (int i = 0; i < 9; i++) {
+            if (i % 3 == 0 && i != 0) {
+                for (int j = 0; j < 21; j++) {
+                    System.out.print("-"); // Imprimir separador de subcuadrícula
+                }
+                System.out.println();
+            }
+            for (int j = 0; j < 9; j++) {
+                if (j % 3 == 0 && j != 0) {
+                    System.out.print("| ");
+                }
+                System.out.print(board[i][j] != 0 ? board[i][j] + " " : ". ");
+            }
+            System.out.println();
+        }
+    }
+
+    // Verifica si un número puede colocarse en una posición específica
+    private boolean isValid(int num, int row, int col) {
+        // Verifica si el número ya está en la fila
+        for (int i = 0; i < 9; i++) {
+            if (board[row][i] == num) {
+                return false;
+            }
+        }
+
+        // Verifica si el número ya está en la columna
+        for (int i = 0; i < 9; i++) {
+            if (board[i][col] == num) {
+                return false;
+            }
+        }
+
+        // Verifica si el número ya está en la subcuadrícula 3x3
+        int startRow = row - row % 3;
+        int startCol = col - col % 3;
+        for (int i = startRow; i < startRow + 3; i++) {
+            for (int j = startCol; j < startCol + 3; j++) {
+                if (board[i][j] == num) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // Resuelve el Sudoku usando backtracking
+    public boolean solve() {
+        int[] empty = findEmpty();
+        if (empty == null) {
+            return true; // No hay celdas vacías, el Sudoku está resuelto
+        }
+
+        int row = empty[0], col = empty[1];
+        for (int num = 1; num <= 9; num++) {
+            if (isValid(num, row, col)) {
+                board[row][col] = num;
+                if (solve()) {
+                    return true; // Si resuelve correctamente, retorna verdadero
+                }
+                board[row][col] = 0; // Backtracking
+            }
+        }
+        return false; // No se puede resolver el tablero
+    }
+
+    // Encuentra una celda vacía en el tablero
+    private int[] findEmpty() {
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (board[i][j] == 0) {
+                    return new int[]{i, j}; // Retorna la primera celda vacía encontrada
+                }
+            }
+        }
+        return null; // Si no hay celdas vacías
+    }
+
+    // Genera un Sudoku con una cantidad específica de pistas
+    public void generatePuzzle(int minClues, int maxClues) {
+        // Verifica que los valores estén dentro del rango permitido
+        if (minClues < 9 || maxClues > 21 || minClues > maxClues) {
+            throw new IllegalArgumentException("La cantidad de pistas debe estar entre 9 y 21.");
+        }
+
+        // Resolver un Sudoku completo primero
+        solve();
+        // Copiar la solución al tablero de solución
+        for (int i = 0; i < 9; i++) {
+            System.arraycopy(board[i], 0, solution[i], 0, 9);
+        }
+
+        // Establecer una cantidad aleatoria de pistas dentro del rango especificado
+        Random rand = new Random();
+        int cluesToKeep = minClues + rand.nextInt(maxClues - minClues + 1);
+
+        // Inicializar el tablero con la solución
+        for (int i = 0; i < 9; i++) {
+            System.arraycopy(solution[i], 0, board[i], 0, 9);
+        }
+
+        // Eliminar números aleatoriamente hasta que queden solo 'cluesToKeep' pistas
+        int cluesToRemove = 81 - cluesToKeep;
+        while (cluesToRemove > 0) {
+            int row = rand.nextInt(9);
+            int col = rand.nextInt(9);
+            if (board[row][col] != 0) {
+                board[row][col] = 0;
+                cluesToRemove--;
+            }
+        }
+    }
+
+    // Verifica si el número ingresado es el correcto según la solución
+    public boolean checkNumber(int num, int row, int col) {
+        return num == solution[row][col];
+    }
+
+    // Permite al jugador ingresar el tablero manualmente
+    public void inputBoard() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Ingrese el tablero de Sudoku:");
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                System.out.printf("Ingrese el número para la posición fila %d, columna %d (0 para vacío): ", i, j);
+                int num = scanner.nextInt();
+                if (num < 0 || num > 9) {
+                    System.out.println("Número inválido. Ingrese un número entre 0 y 9.");
+                    j--; // Volver a solicitar el número para la misma posición
+                } else if (num != 0 && !isValid(num, i, j)) {
+                    System.out.println("Número inválido en la posición " + i + ", " + j + ". Intenta de nuevo.");
+                    j--; // Volver a solicitar el número para la misma posición
+                } else {
+                    board[i][j] = num;
+                }
+            }
+        }
+    }
+
+    // Método principal para interactuar con el jugador
+    public static void main(String[] args) {
+        Sudoku juego = new Sudoku();
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Seleccione una opción:");
+        System.out.println("1. Jugar Sudoku");
+        System.out.println("2. Ingresar tablero manualmente");
+
+        int choice = scanner.nextInt();
+
+        if (choice == 1) {
+            // Seleccionar un rango aleatorio para la cantidad de pistas
+            int minClues = 9;
+            int maxClues = 21;
+            juego.generatePuzzle(minClues, maxClues);
+
+            System.out.println("Puzzle de Sudoku generado:");
+            juego.printBoard();
+
+            // Bucle de juego
+            while (true) {
+                System.out.println("Puzzle de Sudoku:");
+                juego.printBoard();
+
+                // Encuentra la siguiente celda vacía
+                int[] empty = juego.findEmpty();
+                if (empty == null) {
+                    System.out.println("¡Felicitaciones! Has completado el Sudoku.");
+                    break;
+                }
+
+                int row = empty[0];
+                int col = empty[1];
+
+                System.out.println("Ingrese un número para la posición fila " + row + ", columna " + col + ":");
+                int num = scanner.nextInt();
+
+                // Verifica si el número es correcto
+                if (juego.checkNumber(num, row, col)) {
+                    juego.board[row][col] = num;
+                    System.out.println("Número correcto.");
+                } else {
+                    System.out.println("Número incorrecto. Intenta de nuevo.");
+                }
+            }
+        } else if (choice == 2) {
+            juego.inputBoard();
+            System.out.println("Tablero ingresado:");
+            juego.printBoard();
+
+            if (juego.solve()) {
+                System.out.println("\nSolución encontrada:");
+                juego.printBoard();
+            } else {
+                System.out.println("\nNo se pudo encontrar una solución. El tablero puede estar mal configurado.");
+            }
+        } else {
+            System.out.println("Opción no válida.");
+        }
+
+        scanner.close();
+    }
+}
