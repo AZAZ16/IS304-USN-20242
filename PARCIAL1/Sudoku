@@ -1,24 +1,20 @@
+import java.io.*;
 import java.util.Random;
 import java.util.Scanner;
 
-public class Sudoku {
-    private int[][] board;
-    private int[][] solution; // Guarda la solución del Sudoku completo.
+class Juego {
+    protected int[][] board; // Tablero base
+    protected StringBuilder movimientos;
 
-    public Sudoku() {
-        // Inicializa el tablero de sudoku con ceros (vacío)
-        board = new int[9][9];
-        solution = new int[9][9];
+    public Juego() {
+        board = new int[9][9]; // Inicializa el tablero
+        movimientos = new StringBuilder();
     }
 
-    // Imprime el tablero en un formato legible
     public void printBoard() {
         for (int i = 0; i < 9; i++) {
             if (i % 3 == 0 && i != 0) {
-                for (int j = 0; j < 21; j++) {
-                    System.out.print("-"); // Imprimir separador de subcuadrícula
-                }
-                System.out.println();
+                System.out.println("---------------------");
             }
             for (int j = 0; j < 9; j++) {
                 if (j % 3 == 0 && j != 0) {
@@ -30,23 +26,12 @@ public class Sudoku {
         }
     }
 
-    // Verifica si un número puede colocarse en una posición específica
-    private boolean isValid(int num, int row, int col) {
-        // Verifica si el número ya está en la fila
+    public boolean isValid(int num, int row, int col) {
         for (int i = 0; i < 9; i++) {
-            if (board[row][i] == num) {
+            if (board[row][i] == num || board[i][col] == num) {
                 return false;
             }
         }
-
-        // Verifica si el número ya está en la columna
-        for (int i = 0; i < 9; i++) {
-            if (board[i][col] == num) {
-                return false;
-            }
-        }
-
-        // Verifica si el número ya está en la subcuadrícula 3x3
         int startRow = row - row % 3;
         int startCol = col - col % 3;
         for (int i = startRow; i < startRow + 3; i++) {
@@ -59,63 +44,44 @@ public class Sudoku {
         return true;
     }
 
-    // Resuelve el Sudoku usando backtracking
     public boolean solve() {
         int[] empty = findEmpty();
         if (empty == null) {
             return true; // No hay celdas vacías, el Sudoku está resuelto
         }
-
         int row = empty[0], col = empty[1];
         for (int num = 1; num <= 9; num++) {
             if (isValid(num, row, col)) {
                 board[row][col] = num;
                 if (solve()) {
-                    return true; // Si resuelve correctamente, retorna verdadero
+                    return true;
                 }
                 board[row][col] = 0; // Backtracking
             }
         }
-        return false; // No se puede resolver el tablero
+        return false;
     }
 
-    // Encuentra una celda vacía en el tablero
-    private int[] findEmpty() {
+    public int[] findEmpty() {
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
                 if (board[i][j] == 0) {
-                    return new int[]{i, j}; // Retorna la primera celda vacía encontrada
+                    return new int[]{i, j};
                 }
             }
         }
-        return null; // Si no hay celdas vacías
+        return null;
     }
 
-    // Genera un Sudoku con una cantidad específica de pistas
-    public void generatePuzzle(int minClues, int maxClues) {
-        // Verifica que los valores estén dentro del rango permitido
-        if (minClues < 9 || maxClues > 21 || minClues > maxClues) {
-            throw new IllegalArgumentException("La cantidad de pistas debe estar entre 9 y 21.");
+    public void generatePuzzle(int minClues, int maxClues, int desiredClues) {
+        if (desiredClues < minClues || desiredClues > maxClues) {
+            throw new IllegalArgumentException("La cantidad de pistas debe estar entre " + minClues + " y " + maxClues);
         }
-
-        // Resolver un Sudoku completo primero
-        solve();
-        // Copiar la solución al tablero de solución
-        for (int i = 0; i < 9; i++) {
-            System.arraycopy(board[i], 0, solution[i], 0, 9);
-        }
-
-        // Establecer una cantidad aleatoria de pistas dentro del rango especificado
+        solve(); // Resuelve el Sudoku primero
         Random rand = new Random();
-        int cluesToKeep = minClues + rand.nextInt(maxClues - minClues + 1);
-
-        // Inicializar el tablero con la solución
-        for (int i = 0; i < 9; i++) {
-            System.arraycopy(solution[i], 0, board[i], 0, 9);
-        }
-
-        // Eliminar números aleatoriamente hasta que queden solo 'cluesToKeep' pistas
+        int cluesToKeep = desiredClues;
         int cluesToRemove = 81 - cluesToKeep;
+
         while (cluesToRemove > 0) {
             int row = rand.nextInt(9);
             int col = rand.nextInt(9);
@@ -126,93 +92,175 @@ public class Sudoku {
         }
     }
 
-    // Verifica si el número ingresado es el correcto según la solución
-    public boolean checkNumber(int num, int row, int col) {
-        return num == solution[row][col];
-    }
-
-    // Permite al jugador ingresar el tablero manualmente
-    public void inputBoard() {
+    public void inputBoard(int clues) {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Ingrese el tablero de Sudoku:");
+        System.out.println("Ingrese el tablero de Sudoku (9 números por fila, use 0 para celdas vacías):");
         for (int i = 0; i < 9; i++) {
+            System.out.printf("Fila %d: ", i + 1);
             for (int j = 0; j < 9; j++) {
-                System.out.printf("Ingrese el número para la posición fila %d, columna %d (0 para vacío): ", i, j);
-                int num = scanner.nextInt();
-                if (num < 0 || num > 9) {
-                    System.out.println("Número inválido. Ingrese un número entre 0 y 9.");
-                    j--; // Volver a solicitar el número para la misma posición
-                } else if (num != 0 && !isValid(num, i, j)) {
-                    System.out.println("Número inválido en la posición " + i + ", " + j + ". Intenta de nuevo.");
-                    j--; // Volver a solicitar el número para la misma posición
-                } else {
-                    board[i][j] = num;
-                }
+                board[i][j] = scanner.nextInt();
             }
         }
     }
 
-    // Método principal para interactuar con el jugador
+    public void verificarCompletados() {
+        // Verificación de filas completas
+        for (int i = 0; i < 9; i++) {
+            boolean filaValida = true;
+            for (int j = 0; j < 9; j++) {
+                if (board[i][j] == 0) {
+                    filaValida = false;
+                    break;
+                }
+            }
+            if (filaValida) {
+                System.out.println("Fila " + (i + 1) + " completada.");
+            }
+        }
+    }
+
+    public void guardarPartida() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("sudoku_partida_guardada.txt"))) {
+            writer.println(movimientos.toString());
+            System.out.println("Partida guardada correctamente.");
+        } catch (IOException e) {
+            System.out.println("Error al guardar la partida.");
+        }
+    }
+
+    public void reproducirPartida() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("sudoku_partida_guardada.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            System.out.println("Error al reproducir la partida.");
+        }
+    }
+
+    public boolean verificarFilaCompleta(int fila) {
+        for (int num = 1; num <= 9; num++) {
+            boolean encontrado = false;
+            for (int col = 0; col < 9; col++) {
+                if (board[fila][col] == num) {
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado) {
+                return false; // Fila no completa
+            }
+        }
+        return true; // Fila completa
+    }
+
+    public void actualizarTablero() {
+        for (int i = 0; i < 9; i++) {
+            if (verificarFilaCompleta(i)) {
+                System.out.println("Fila " + (i + 1) + " completada.");
+                printBoard(); // Muestra el tablero actualizado
+            }
+        }
+    }
+}
+
+public class Sudoku extends Juego {
     public static void main(String[] args) {
         Sudoku juego = new Sudoku();
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Seleccione una opción:");
-        System.out.println("1. Jugar Sudoku");
-        System.out.println("2. Ingresar tablero manualmente");
+        System.out.println("Para salir en cualquier momento, ingrese -1 cuando se le pida un número.");
 
-        int choice = scanner.nextInt();
+        while (true) {
+            System.out.println("Seleccione una opción:");
+            System.out.println("1. Jugar Sudoku (generar nuevo)");
+            System.out.println("2. Ingresar tablero manualmente");
+            System.out.println("3. Guardar partida");
+            System.out.println("4. Reproducir última partida");
+            System.out.println("5. Salir");
 
-        if (choice == 1) {
-            // Seleccionar un rango aleatorio para la cantidad de pistas
-            int minClues = 9;
-            int maxClues = 21;
-            juego.generatePuzzle(minClues, maxClues);
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Limpiar el buffer después del nextInt()
 
-            System.out.println("Puzzle de Sudoku generado:");
-            juego.printBoard();
-
-            // Bucle de juego
-            while (true) {
-                System.out.println("Puzzle de Sudoku:");
-                juego.printBoard();
-
-                // Encuentra la siguiente celda vacía
-                int[] empty = juego.findEmpty();
-                if (empty == null) {
-                    System.out.println("¡Felicitaciones! Has completado el Sudoku.");
+            switch (choice) {
+                case 1:
+                    System.out.println("Ingrese cantidad de pistas (9-21):");
+                    int cluesGen = scanner.nextInt();
+                    juego.generatePuzzle(9, 21, cluesGen);
+                    juego.printBoard();
+                    juego.verificarCompletados();
+                    juego.jugar(scanner);
                     break;
-                }
-
-                int row = empty[0];
-                int col = empty[1];
-
-                System.out.println("Ingrese un número para la posición fila " + row + ", columna " + col + ":");
-                int num = scanner.nextInt();
-
-                // Verifica si el número es correcto
-                if (juego.checkNumber(num, row, col)) {
-                    juego.board[row][col] = num;
-                    System.out.println("Número correcto.");
-                } else {
-                    System.out.println("Número incorrecto. Intenta de nuevo.");
-                }
+                case 2:
+                    System.out.println("Ingrese cantidad de pistas (9-21):");
+                    int cluesManual = scanner.nextInt();
+                    juego.inputBoard(cluesManual);
+                    juego.printBoard();
+                    juego.verificarCompletados();
+                    System.out.println("¿Desea jugar el tablero? (1: Sí, 2: Ver solución)");
+                    int playChoice = scanner.nextInt();
+                    if (playChoice == 2) {
+                        System.out.println("Aquí está la solución:");
+                        juego.solve();
+                        juego.printBoard();
+                        break;
+                    }
+                    juego.jugar(scanner);
+                    break;
+                case 3:
+                    juego.guardarPartida();
+                    break;
+                case 4:
+                    juego.reproducirPartida();
+                    break;
+                case 5:
+                    System.out.println("Gracias por jugar.");
+                    return;
+                default:
+                    System.out.println("Opción no válida.");
+                    break;
             }
-        } else if (choice == 2) {
-            juego.inputBoard();
-            System.out.println("Tablero ingresado:");
-            juego.printBoard();
-
-            if (juego.solve()) {
-                System.out.println("\nSolución encontrada:");
-                juego.printBoard();
-            } else {
-                System.out.println("\nNo se pudo encontrar una solución. El tablero puede estar mal configurado.");
-            }
-        } else {
-            System.out.println("Opción no válida.");
         }
+    }
 
-        scanner.close();
+    private void jugar(Scanner scanner) {
+        int attempts = 0;
+        while (true) {
+            int[] empty = findEmpty();
+            if (empty == null) {
+                System.out.println("¡Felicitaciones! Has completado el Sudoku.");
+                break;
+            }
+            int row = empty[0], col = empty[1];
+            System.out.printf("Ingrese un número para la posición fila %d, columna %d: ", row + 1, col + 1);
+            int num = scanner.nextInt();
+
+            if (num == -1) {
+                System.out.println("Has salido del juego. Puedes volver a cargar la partida más tarde.");
+                return;
+            }
+
+            if (num < 1 || num > 9) {
+                System.out.println("Número inválido. Debe ser entre 1 y 9.");
+                movimientos.append("Error: Número inválido en fila ").append(row + 1).append(", columna ").append(col + 1).append("\n");
+                continue;
+            }
+
+            if (!isValid(num, row, col)) {
+                System.out.println("Movimiento inválido, intenta de nuevo.");
+                movimientos.append("Error: Movimiento inválido en fila ").append(row + 1).append(", columna ").append(col + 1).append("\n");
+                attempts++;
+                continue;
+            }
+
+            board[row][col] = num;
+            movimientos.append("Movimiento válido: número ").append(num).append(" en fila ").append(row + 1).append(", columna ").append(col + 1).append("\n");
+
+            printBoard();
+            actualizarTablero(); // Muestra el tablero actualizado si se completan filas
+
+            attempts++;
+        }
     }
 }
