@@ -79,7 +79,7 @@ class Juego {
         }
         solve(); // Resuelve el Sudoku primero
         Random rand = new Random();
-        int cluesToKeep = desiredClues; // Cambiar a usar las pistas deseadas
+        int cluesToKeep = desiredClues;
         int cluesToRemove = 81 - cluesToKeep;
 
         while (cluesToRemove > 0) {
@@ -92,22 +92,13 @@ class Juego {
         }
     }
 
-    public void inputBoard(int clues) {
+    public void inputBoard() {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Ingrese el tablero de Sudoku (9 números por fila, use 0 para celdas vacías):");
         for (int i = 0; i < 9; i++) {
             System.out.printf("Fila %d: ", i + 1);
             for (int j = 0; j < 9; j++) {
                 board[i][j] = scanner.nextInt();
-            }
-        }
-        // Aseguramos que se mantenga la cantidad de pistas deseadas.
-        Random rand = new Random();
-        while (clues > 0) {
-            int row = rand.nextInt(9);
-            int col = rand.nextInt(9);
-            if (board[row][col] != 0) {
-                clues--;
             }
         }
     }
@@ -167,83 +158,59 @@ class Juego {
         }
     }
 
+    // Método actualizado para guardar la partida
     public void guardarPartida() {
         try (PrintWriter writer = new PrintWriter(new FileWriter("sudoku_partida.txt"))) {
-            // Guardar el tablero
+            writer.println("Estado final del tablero:");
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
-                    writer.print(board[i][j] + " ");
+                    writer.print(board[i][j] != 0 ? board[i][j] + " " : ". ");
                 }
                 writer.println();
             }
-            writer.println(movimientos.toString());
-            System.out.println("Partida guardada correctamente.");
+            System.out.println("Estado del tablero guardado correctamente.");
         } catch (IOException e) {
-            System.out.println("Error al guardar la partida.");
+            System.out.println("Error al guardar la partida: " + e.getMessage());
+        }
+
+        guardarMovimientos(); // Guardar movimientos en otro archivo
+    }
+
+    // Método para guardar los movimientos en un archivo aparte
+    public void guardarMovimientos() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("movimientos.txt"))) {
+            writer.println("Movimientos realizados:");
+            writer.println(movimientos.toString()); // Guardar todos los movimientos registrados
+            System.out.println("Movimientos guardados correctamente.");
+        } catch (IOException e) {
+            System.out.println("Error al guardar los movimientos: " + e.getMessage());
         }
     }
 
     public void reproducirPartida() {
         try (BufferedReader reader = new BufferedReader(new FileReader("sudoku_partida.txt"))) {
             String line;
-            int row = 0;
-
-            // Cargar el tablero
-            while ((line = reader.readLine()) != null && row < 9) {
-                String[] numbers = line.split(" ");
-                for (int col = 0; col < 9; col++) {
-                    board[row][col] = Integer.parseInt(numbers[col]);
-                }
-                row++;
-            }
-
-            // Cargar los movimientos (si es necesario)
-            StringBuilder loadedMovimientos = new StringBuilder();
+            System.out.println("Estado del tablero:");
             while ((line = reader.readLine()) != null) {
-                loadedMovimientos.append(line).append("\n");
+                System.out.println(line);
             }
-            movimientos = loadedMovimientos;
-
-            System.out.println("Partida reproducida correctamente.");
-            printBoard();
-            jugar(new Scanner(System.in)); // Permitir jugar después de cargar
         } catch (IOException e) {
-            System.out.println("Error al reproducir la partida.");
+            System.out.println("Error al reproducir la partida: " + e.getMessage());
         }
+
+        reproducirMovimientos(); // Reproducir movimientos desde el archivo
     }
 
-    public void jugar(Scanner scanner) {
-        int attempts = 0;
-        while (true) {
-            int[] empty = findEmpty();
-            if (empty == null) {
-                System.out.println("¡Felicitaciones! Has completado el Sudoku.");
-                break;
+    // Método para reproducir los movimientos desde el archivo
+    public void reproducirMovimientos() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("movimientos.txt"))) {
+            String line;
+            System.out.println("Movimientos realizados:");
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
             }
-            int row = empty[0], col = empty[1];
-            System.out.printf("Ingrese un número para la posición fila %d, columna %d: ", row + 1, col + 1);
-            int num = scanner.nextInt();
-
-            if (num == -1) { // Opción para salir del juego
-                System.out.println("Has salido del juego. Puedes volver a cargar la partida más tarde.");
-                return;
-            }
-
-            if (isValid(num, row, col)) {
-                board[row][col] = num;
-                movimientos.append("Fila ").append(row + 1).append(", Columna ").append(col + 1).append(": ").append(num).append("\n");
-                attempts = 0; // Resetea el contador de intentos
-            } else {
-                System.out.println("Número inválido. Intenta de nuevo.");
-                attempts++;
-                if (attempts >= 3) {
-                    System.out.println("¡Has perdido! Aquí está la solución:");
-                    solve(); // Resuelve el Sudoku
-                    printBoard(); // Muestra la solución
-                    break;
-                }
-            }
-            printBoard();
+        } catch (IOException e) {
+            System.out.println("Error al reproducir los movimientos: " + e.getMessage());
         }
     }
 }
@@ -274,9 +241,7 @@ public class Sudoku extends Juego {
                     juego.jugar(scanner);
                     break;
                 case 2:
-                    System.out.println("Ingrese cantidad de pistas (9-21):");
-                    int cluesManual = scanner.nextInt();
-                    juego.inputBoard(cluesManual);
+                    juego.inputBoard();
                     juego.printBoard();
                     juego.verificarCompletados();
                     System.out.println("¿Desea jugar el tablero? (1: Sí, 2: No)");
@@ -286,10 +251,10 @@ public class Sudoku extends Juego {
                     }
                     break;
                 case 3:
-                    juego.guardarPartida();
+                    juego.guardarPartida(); // Guardar tanto tablero como movimientos
                     break;
                 case 4:
-                    juego.reproducirPartida();
+                    juego.reproducirPartida(); // Reproducir tanto tablero como movimientos
                     break;
                 case 5:
                     System.out.println("Gracias por jugar.");
@@ -298,6 +263,46 @@ public class Sudoku extends Juego {
                     System.out.println("Opción no válida.");
                     break;
             }
+        }
+    }
+
+    private void jugar(Scanner scanner) {
+        int attempts = 0;
+        while (true) {
+            int[] empty = findEmpty();
+            if (empty == null) {
+                System.out.println("¡Felicitaciones! Has completado el Sudoku.");
+                break;
+            }
+            int row = empty[0], col = empty[1];
+            System.out.printf("Ingrese un número para la posición fila %d, columna %d (o -1 para salir): ", row + 1, col + 1);
+            int num = scanner.nextInt();
+
+            if (num == -1) {
+                System.out.println("Has salido del juego. Puedes volver a cargar la partida más tarde.");
+                return;
+            }
+
+            if (num < 1 || num > 9) {
+                System.out.println("Número inválido. Debe estar entre 1 y 9.");
+                continue; // Vuelve al inicio del bucle
+            }
+
+            if (isValid(num, row, col)) {
+                board[row][col] = num;
+                movimientos.append(String.format("Fila %d, Columna %d: %d%n", row + 1, col + 1, num));
+                attempts = 0; // Resetea el contador de intentos
+            } else {
+                System.out.println("Número inválido. Intenta de nuevo.");
+                attempts++;
+                if (attempts >= 3) {
+                    System.out.println("¡Has perdido! Aquí está la solución:");
+                    solve(); // Resuelve el Sudoku
+                    printBoard(); // Muestra la solución
+                    break;
+                }
+            }
+            printBoard();
         }
     }
 }
